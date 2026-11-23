@@ -135,16 +135,26 @@ function validate(text: string): void {
   if (text.trim().length === 0) {
     throw new Error("entry must not be only white space");
   }
+  if (text !== text.trim() || /\s{2,}/.test(text)) {
+    throw new Error(`story must not have leading, trailing or doubled spaces: ${text}`);
+  }
 }
 
 function main(): void {
-  const story = pickBest(CANDIDATES);
-  validate(story.text);
   // Every candidate is validated too, so the shortlist itself can never
   // hand the gate an invalid story.
   for (const candidate of CANDIDATES) {
     validate(candidate.text);
   }
+  if (process.argv[2] === "--list") {
+    // Audit mode: show the shortlist with scores, without writing output.
+    const ranked = [...CANDIDATES].sort((a, b) => totalScore(b) - totalScore(a));
+    for (const candidate of ranked) {
+      console.log(`${totalScore(candidate)}  ${candidate.text}`);
+    }
+    return;
+  }
+  const story = pickBest(CANDIDATES);
   const outDir = process.argv[2] ?? "/output";
   mkdirSync(outDir, { recursive: true });
   // No trailing newline: the file holds exactly the six-word story.
